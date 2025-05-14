@@ -15,7 +15,7 @@ jobs:
 
     - name: Inject debug marker
       run: |
-        GA_TRACKING_ID=${{ vars.GA_TRACKING_ID }}
+        GA_TRACKING_ID="G-MHQZ4X0HZQ"
         GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
@@ -35,7 +35,7 @@ jobs:
       run: |
         echo "Injecting GA script..."
 
-        GA_TRACKING_ID=${{ vars.GA_TRACKING_ID }}
+        GA_TRACKING_ID="G-MHQZ4X0HZQ"
     
         for file in $(find . -name "*.html"); do
           if ! grep -q "${GA_TRACKING_ID}" "$file"; then
