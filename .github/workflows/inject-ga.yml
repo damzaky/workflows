@@ -7,7 +7,8 @@ jobs:
   inject-ga:
     if: github.repository_owner == 'damzaky'  # prevent forked repos from triggering
     runs-on: ubuntu-latest
-    environment: production
+    env:
+      GA_TRACKING_ID: "G-MHQZ4X0HZQ"
 
     steps:
     - name: Checkout repo
@@ -28,36 +29,34 @@ jobs:
         for file in $(find . -name "*.html"); do
           echo "$GA_SNIPPET" >> "$file"
         done
-        echo '"A $GA_SNIPPET"'
-        echo '"B ${GA_SNIPPET}"'
 
-    - name: Inject GA script after <head>
+    - name: Inject GA script
       run: |
         echo "Injecting GA script..."
-
-        GA_TRACKING_ID="G-MHQZ4X0HZQ"
+    
+        GA_SNIPPET='<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag("js", new Date());
+          gtag("config", "${GA_TRACKING_ID}");
+        </script>'
     
         for file in $(find . -name "*.html"); do
           if ! grep -q "${GA_TRACKING_ID}" "$file"; then
-            tmpfile=$(mktemp)
-            while IFS= read -r line; do
-              echo "$line" >> "$tmpfile"
-              if echo "$line" | grep -q "<head>"; then
-                echo '<script async src="https://www.googletagmanager.com/gtag/js?id='"${GA_TRACKING_ID}"'"></script>' >> "$tmpfile"
-                echo '<script>' >> "$tmpfile"
-                echo '  window.dataLayer = window.dataLayer || [];' >> "$tmpfile"
-                echo '  function gtag(){dataLayer.push(arguments);}' >> "$tmpfile"
-                echo '  gtag("js", new Date());' >> "$tmpfile"
-                echo '  gtag("config", "'"${GA_TRACKING_ID}"'");' >> "$tmpfile"
-                echo '</script>' >> "$tmpfile"
-              fi
-            done < "$file"
-            mv "$tmpfile" "$file"
+            awk -v snippet="$GA_SNIPPET" '
+              /<head>/ {
+                print;
+                print snippet;
+                next
+              }
+              { print }
+            ' "$file" > "$file.injected"
+            mv "$file.injected" "$file"
           fi
         done
 
-    - name: Confirm GA injection
-      run: grep "${GA_TRACKING_ID}" index.html || echo "Not injected"
+
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
