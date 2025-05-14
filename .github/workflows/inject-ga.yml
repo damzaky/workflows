@@ -25,15 +25,13 @@ jobs:
             while IFS= read -r line; do
               echo "$line" >> "$tmpfile"
               if echo "$line" | grep -q "<head>"; then
-cat <<EOF >> "$tmpfile"
-<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag("js", new Date());
-  gtag("config", "${GA_TRACKING_ID}");
-</script>
-EOF
+                echo '<script async src="https://www.googletagmanager.com/gtag/js?id='"${GA_TRACKING_ID}"'"></script>' >> "$tmpfile"
+                echo '<script>' >> "$tmpfile"
+                echo '  window.dataLayer = window.dataLayer || [];' >> "$tmpfile"
+                echo '  function gtag(){dataLayer.push(arguments);}' >> "$tmpfile"
+                echo '  gtag("js", new Date());' >> "$tmpfile"
+                echo '  gtag("config", "'"${GA_TRACKING_ID}"'");' >> "$tmpfile"
+                echo '</script>' >> "$tmpfile"
               fi
             done < "$file"
             mv "$tmpfile" "$file"
