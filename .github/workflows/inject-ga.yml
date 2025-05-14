@@ -56,6 +56,9 @@ jobs:
           echo "$GA_SNIPPET" >> "$file"
         done
 
+    - name: Confirm GA injection
+      run: grep "${GA_TRACKING_ID}" index.html || echo "Not injected"
+
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
