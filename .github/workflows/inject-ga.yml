@@ -13,6 +13,22 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
+    - name: Inject debug marker
+      run: |
+        GA_TRACKING_ID=${{ vars.GA_TRACKING_ID }}
+        GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag(\"js\", new Date());
+          gtag(\"config\", \"${GA_TRACKING_ID}\");
+        </script>"
+
+        echo "Injecting debug marker..."
+        for file in $(find . -name "*.html"); do
+          echo "$GA_SNIPPET" >> "$file"
+        done
+
     - name: Inject GA script after <head>
       run: |
         echo "Injecting GA script..."
