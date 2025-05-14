@@ -19,27 +19,26 @@ jobs:
       run: |
         echo "Injecting GA script..."
     
-        GA_SNIPPET='<script async src="https://www.googletagmanager.com/gtag/js?id='"${GA_TRACKING_ID}"'"></script>
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag("js", new Date());
-          gtag("config", "'"${GA_TRACKING_ID}"'");
-        </script>'
-    
         for file in $(find . -name "*.html"); do
           if ! grep -q "${GA_TRACKING_ID}" "$file"; then
-            awk -v snippet="$GA_SNIPPET" '
-              /<head[^>]*>/ {
-                print;
-                print snippet;
-                next
-              }
-              { print }
-            ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+            tmpfile=$(mktemp)
+            while IFS= read -r line; do
+              echo "$line" >> "$tmpfile"
+              if echo "$line" | grep -q "<head>"; then
+                cat <<EOF >> "$tmpfile"
+                <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}"></script>
+                <script>
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag("js", new Date());
+                  gtag("config", "${GA_TRACKING_ID}");
+                </script>
+                EOF
+              fi
+            done < "$file"
+            mv "$tmpfile" "$file"
           fi
         done
-
 
     - name: Confirm GA injection
       run: grep "${GA_TRACKING_ID}" index.html || echo "Not injected"
