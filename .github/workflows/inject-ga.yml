@@ -8,8 +8,6 @@ jobs:
     if: github.repository_owner == 'damzaky'  # prevent forked repos from triggering
     runs-on: ubuntu-latest
     environment: production
-    env:
-      GA_TRACKING_ID: ${{ vars.GA_TRACKING_ID }}
 
     steps:
     - name: Checkout repo
@@ -18,6 +16,8 @@ jobs:
     - name: Inject GA script after <head>
       run: |
         echo "Injecting GA script..."
+
+        GA_TRACKING_ID=${{ vars.GA_TRACKING_ID }}
     
         for file in $(find . -name "*.html"); do
           if ! grep -q "${GA_TRACKING_ID}" "$file"; then
