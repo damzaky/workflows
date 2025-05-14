@@ -7,6 +7,7 @@ jobs:
   inject-ga:
     if: github.repository_owner == 'damzaky'  # prevent forked repos from triggering
     runs-on: ubuntu-latest
+    environment: production
     env:
       GA_TRACKING_ID: ${{ vars.GA_TRACKING_ID }}
 
@@ -14,20 +15,35 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Inject debug marker
+    - name: Inject GA script
       run: |
-        GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
+        echo "Injecting GA script..."
+    
+        GA_SNIPPET=$(cat <<EOF
+        <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
-          gtag(\"js\", new Date());
-          gtag(\"config\", \"${GA_TRACKING_ID}\");
-        </script>"
-
-        echo "Injecting debug marker..."
+          gtag("js", new Date());
+          gtag("config", "${GA_TRACKING_ID}");
+        </script>
+        EOF
+        )
+    
         for file in $(find . -name "*.html"); do
-          echo "$GA_SNIPPET" >> "$file"
+          if ! grep -q "${GA_TRACKING_ID}" "$file"; then
+            awk -v snippet="$GA_SNIPPET" '
+              /<head[^>]*>/ {
+                print;
+                print snippet;
+                next
+              }
+              { print }
+            ' "$file" > "$file.injected"
+            mv "$file.injected" "$file"
+          fi
         done
+
 
     - name: Confirm GA injection
       run: grep "${GA_TRACKING_ID}" index.html || echo "Not injected"
