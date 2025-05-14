@@ -16,9 +16,17 @@ jobs:
 
     - name: Inject debug marker
       run: |
+        GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag(\"js\", new Date());
+          gtag(\"config\", \"${GA_TRACKING_ID}\");
+        </script>"
+
         echo "Injecting debug marker..."
         for file in $(find . -name "*.html"); do
-          echo "<!-- DEBUG_MARKER -->" >> "$file"
+          echo "$GA_SNIPPET" >> "$file"
         done
 
     - name: Confirm GA injection
