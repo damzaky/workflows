@@ -28,8 +28,8 @@ jobs:
         for file in $(find . -name "*.html"); do
           echo "$GA_SNIPPET" >> "$file"
         done
-        echo "A ${GA_SNIPPET}"
-        echo "B ${{GA_SNIPPET}}"
+        echo '"A $GA_SNIPPET"'
+        echo '"B ${GA_SNIPPET}"'
 
     - name: Inject GA script after <head>
       run: |
