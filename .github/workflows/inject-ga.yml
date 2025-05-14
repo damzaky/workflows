@@ -5,7 +5,7 @@ on:
 
 jobs:
   inject-ga:
-    if: github.repository_owner == 'damzaky'  # prevent forked repos from triggering
+    if: github.repository_owner == 'damzaky'
     runs-on: ubuntu-latest
     env:
       GA_TRACKING_ID: "G-MHQZ4X0HZQ"
