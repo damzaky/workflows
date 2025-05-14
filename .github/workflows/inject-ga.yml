@@ -18,13 +18,13 @@ jobs:
       run: |
         echo "Injecting GA script..."
     
-        GA_SNIPPET='<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}"></script>
+        GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
-          gtag("js", new Date());
-          gtag("config", "${GA_TRACKING_ID}");
-        </script>'
+          gtag(\"js\", new Date());
+          gtag(\"config\", \"${GA_TRACKING_ID}\");
+        </script>"
     
         for file in $(find . -name "*.html"); do
           if ! grep -q "${GA_TRACKING_ID}" "$file"; then
@@ -39,7 +39,6 @@ jobs:
             mv "$file.injected" "$file"
           fi
         done
-
 
     - name: Confirm GA injection
       run: grep "${GA_TRACKING_ID}" index.html || echo "Not injected"
