@@ -14,30 +14,11 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Inject GA script
+    - name: Inject debug marker
       run: |
-        echo "Injecting GA script..."
-    
-        GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag(\"js\", new Date());
-          gtag(\"config\", \"${GA_TRACKING_ID}\");
-        </script>"
-    
+        echo "Injecting debug marker..."
         for file in $(find . -name "*.html"); do
-          if ! grep -q "${GA_TRACKING_ID}" "$file"; then
-            awk -v snippet="$GA_SNIPPET" '
-              /<head>/ {
-                print;
-                print snippet;
-                next
-              }
-              { print }
-            ' "$file" > "$file.injected"
-            mv "$file.injected" "$file"
-          fi
+          echo "<!-- DEBUG_MARKER -->" >> "$file"
         done
 
     - name: Confirm GA injection
