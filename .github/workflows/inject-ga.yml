@@ -14,9 +14,9 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Inject GA script and homepage logo
+    - name: Inject GA script, CSS, and homepage logo
       run: |
-        echo "Injecting GA script and homepage logo..."
+        echo "Injecting GA script, CSS link, and homepage logo..."
 
         GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
         <script>
@@ -26,21 +26,29 @@ jobs:
           gtag(\"config\", \"${GA_TRACKING_ID}\");
         </script>"
 
+        CSS_LINK='<link rel="stylesheet" href="https://damzaky.github.io/css/main.css">'
         LOGO_SNIPPET='<a id="homepage-logo" href="https://damzaky.github.io/">Damzaky</a>'
 
         for file in $(find . -name "*.html"); do
           echo "Processing $file..."
 
           HAS_GA=$(grep -q "${GA_TRACKING_ID}" "$file" && echo yes || echo no)
+          HAS_CSS=$(grep -q 'href="https://username.github.io/css/main.css"' "$file" && echo yes || echo no)
           HAS_LOGO=$(grep -q 'id="homepage-logo"' "$file" && echo yes || echo no)
 
-          awk -v has_ga="$HAS_GA" -v has_logo="$HAS_LOGO" \
-              -v ga="$GA_SNIPPET" -v logo="$LOGO_SNIPPET" '
+          awk -v has_ga="$HAS_GA" -v has_css="$HAS_CSS" -v has_logo="$HAS_LOGO" \
+              -v ga="$GA_SNIPPET" -v css="$CSS_LINK" -v logo="$LOGO_SNIPPET" '
             {
               # Inject GA snippet before </head> if not present
               if (!injected_ga && has_ga == "no" && /<\/head>/) {
                 print ga;
                 injected_ga = 1;
+              }
+
+              # Inject CSS before </head> if not present
+              if (!injected_css && has_css == "no" && /<\/head>/) {
+                print css;
+                injected_css = 1;
               }
 
               # Inject logo after <body> if not present
