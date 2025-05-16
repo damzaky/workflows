@@ -14,10 +14,10 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
-    - name: Inject GA script
+    - name: Inject GA script and homepage logo
       run: |
-        echo "Injecting GA script..."
-    
+        echo "Injecting GA script and homepage logo..."
+
         GA_SNIPPET="<script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}\"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
@@ -25,19 +25,35 @@ jobs:
           gtag(\"js\", new Date());
           gtag(\"config\", \"${GA_TRACKING_ID}\");
         </script>"
-    
+
+        LOGO_SNIPPET='<a id="homepage-logo" href="https://damzaky.github.io/">Damzaky</a>'
+
         for file in $(find . -name "*.html"); do
-          if ! grep -q "${GA_TRACKING_ID}" "$file"; then
-            awk -v snippet="$GA_SNIPPET" '
-              /<\/head>/ {
-                print snippet;
-                print;
-                next
+          echo "Processing $file..."
+
+          HAS_GA=$(grep -q "${GA_TRACKING_ID}" "$file" && echo yes || echo no)
+          HAS_LOGO=$(grep -q 'id="homepage-logo"' "$file" && echo yes || echo no)
+
+          awk -v has_ga="$HAS_GA" -v has_logo="$HAS_LOGO" \
+              -v ga="$GA_SNIPPET" -v logo="$LOGO_SNIPPET" '
+            {
+              # Inject GA snippet before </head> if not present
+              if (!injected_ga && has_ga == "no" && /<\/head>/) {
+                print ga;
+                injected_ga = 1;
               }
-              { print }
-            ' "$file" > "$file.injected"
-            mv "$file.injected" "$file"
-          fi
+
+              # Inject logo after <body> if not present
+              if (!injected_logo && has_logo == "no" && /<body[^>]*>/) {
+                print;
+                print logo;
+                injected_logo = 1;
+                next;
+              }
+
+              print
+            }
+          ' "$file" > "$file.injected" && mv "$file.injected" "$file"
         done
 
     - name: Confirm GA injection
