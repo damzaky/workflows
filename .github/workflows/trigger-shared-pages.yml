@@ -1,0 +1,52 @@
+name: Trigger Shared Workflow in Repos with Pages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  trigger-pages-repos:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+      ORG: ${{ github.repository_owner }}
+      EXCLUDE_REPO: ${{ github.repository_owner }}/${{ github.repository_owner }}.github.io 
+
+    steps:
+      - name: Install jq
+        run: sudo apt-get install jq -y
+
+      - name: Get Repositories with GitHub Pages
+        run: |
+          echo "Fetching repositories with GitHub Pages enabled..."
+
+          # Get all repos
+          curl -s -H "Authorization: token $GH_TOKEN" \
+               -H "Accept: application/vnd.github+json" \
+               "https://api.github.com/orgs/$ORG/repos?per_page=100" > repos.json
+
+          # Loop through and check for GitHub Pages
+          for repo in $(jq -r '.[].name' repos.json); do
+            full_repo="$ORG/$repo"
+            if [[ "$full_repo" == "$EXCLUDE_REPO" ]]; then
+              echo "Skipping $full_repo (excluded)"
+              continue
+            fi
+
+            # Check if Pages is enabled
+            status=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$ORG/$repo/pages")
+
+            if [ "$status" -eq 200 ]; then
+              echo "$full_repo has Pages enabled. Triggering workflow..."
+
+              # Trigger the workflow
+              curl -s -X POST https://api.github.com/repos/$ORG/$repo/actions/workflows/deploy.yml/dispatches \
+                -H "Authorization: token $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -d '{"ref":"main"}'
+            else
+              echo "⏭ $full_repo does not have GitHub Pages enabled."
+            fi
+          done
