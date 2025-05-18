@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GH_PAT }}
-      ORG: ${{ github.repository_owner }}
-      EXCLUDE_REPO: ${{ github.repository_owner }}/${{ github.repository_owner }}.github.io 
+      USERNAME: ${{ github.repository_owner }}
+      EXCLUDE_REPO: ${{ github.repository_owner }}/${{ github.repository_owner }}.github.io
 
     steps:
       - name: Install jq
@@ -18,35 +18,38 @@ jobs:
       - name: Get Repositories with GitHub Pages
         run: |
           echo "Fetching repositories with GitHub Pages enabled..."
-
-          # Get all repos
+      
+          # Fetch all user repositories (for personal accounts)
           curl -s -H "Authorization: token $GH_TOKEN" \
                -H "Accept: application/vnd.github+json" \
-               "https://api.github.com/orgs/$ORG/repos?per_page=100" > repos.json
-
+               "https://api.github.com/user/repos?per_page=100" > repos.json
+      
           # Loop through and check for GitHub Pages
-          for repo in $(jq -r '.[].name' repos.json); do
+          for repo in $(jq -r '.[] | .name' repos.json); do
             full_repo="$ORG/$repo"
             if [[ "$full_repo" == "$EXCLUDE_REPO" ]]; then
               echo "Skipping $full_repo (excluded)"
               continue
             fi
+      
+            full_repo="$USERNAME/$repo"
 
             # Check if Pages is enabled
             status=$(curl -s -o /dev/null -w "%{http_code}" \
               -H "Authorization: token $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$ORG/$repo/pages")
-
+              "https://api.github.com/repos/$USERNAME/$repo/pages")
+      
             if [ "$status" -eq 200 ]; then
               echo "$full_repo has Pages enabled. Triggering workflow..."
-
+      
               # Trigger the workflow
-              curl -s -X POST https://api.github.com/repos/$ORG/$repo/actions/workflows/deploy.yml/dispatches \
+              curl -s -X POST https://api.github.com/repos/$USERNAME/$repo/actions/workflows/deploy.yml/dispatches \
                 -H "Authorization: token $GH_TOKEN" \
                 -H "Accept: application/vnd.github+json" \
                 -d '{"ref":"main"}'
             else
-              echo "⏭ $full_repo does not have GitHub Pages enabled."
+              echo "⏭ $full_repo does not have GitHub Pages enabled (status $status)."
             fi
           done
+
